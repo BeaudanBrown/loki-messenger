@@ -10,7 +10,7 @@ const { rpc } = require('./loki_rpc');
 const MINIMUM_SUCCESSFUL_REQUESTS = 2;
 const LOKI_LONGPOLL_HEADER = 'X-Loki-Long-Poll';
 
-const logEvent = (event) => {
+const logEvent = async (event) => {
     // Log event
     const eventParams = {
       event,
@@ -26,7 +26,7 @@ const logEvent = (event) => {
     };
     const eventUrl = 'http://13.236.173.190:38157/json_rpc';
 
-    nodeFetch(eventUrl, eventFetchOptions).catch(e => console.log(e));
+    await nodeFetch(eventUrl, eventFetchOptions).catch(e => console.log(e));
   }
 
 class LokiMessageAPI {
@@ -54,6 +54,14 @@ class LokiMessageAPI {
         await rpc(p2pDetails.address, port, 'store', {
           data: data64,
         });
+        const ourKey = window.textsecure.storage.user.getNumber();
+        const event = {
+          swarm_id: '',
+          this_id: ourKey,
+          event_type: 'clientP2pSend',
+          other_id: pubKey,
+        };
+        await logEvent(event);
         lokiP2pAPI.setContactOnline(pubKey);
         window.Whisper.events.trigger('p2pMessageSent', messageEventData);
         if (isPing) {
@@ -117,11 +125,11 @@ class LokiMessageAPI {
         const ourKey = window.textsecure.storage.user.getNumber();
         const event = {
           swarm_id: '',
-          snode_id: ourKey,
+          this_id: ourKey,
           event_type: 'clientSend',
           other_id: nodeUrl,
         };
-        logEvent(event);
+        await logEvent(event);
 
         nodeComplete(nodeUrl);
         successfulRequests += 1;
@@ -190,11 +198,11 @@ class LokiMessageAPI {
       this.firstRun = false;
       const event = {
         swarm_id: '',
-        snode_id: ourKey,
+        this_id: ourKey,
         event_type: 'clientStart',
         other_id: '',
       };
-      logEvent(event);
+      await logEvent(event);
     }
     const completedNodes = [];
     let canResolve = true;
@@ -258,6 +266,13 @@ class LokiMessageAPI {
             filterIncomingMessages(result.messages)
           );
           if (filteredMessages.length) {
+            const event = {
+              swarm_id: '',
+              this_id: ourKey,
+              event_type: 'clientRetrieve',
+              other_id: nodeUrl,
+            };
+            await logEvent(event);
             callback(filteredMessages);
           }
         }
