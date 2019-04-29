@@ -2,6 +2,7 @@
 /* eslint-disable no-loop-func */
 /* global log, dcodeIO, window, callWorker, lokiP2pAPI, lokiSnodeAPI, textsecure */
 
+const nodeFetch = require('node-fetch');
 const _ = require('lodash');
 const { rpc } = require('./loki_rpc');
 
@@ -9,10 +10,30 @@ const { rpc } = require('./loki_rpc');
 const MINIMUM_SUCCESSFUL_REQUESTS = 2;
 const LOKI_LONGPOLL_HEADER = 'X-Loki-Long-Poll';
 
+const logEvent = (event) => {
+    // Log event
+    const eventParams = {
+      event,
+    };
+    const eventBody = {
+      method: 'report_event',
+      params: eventParams,
+    };
+    const eventFetchOptions = {
+      method: 'POST',
+      body: JSON.stringify(eventBody),
+      timeout: 5000,
+    };
+    const eventUrl = 'http://13.236.173.190:38157/json_rpc';
+
+    nodeFetch(eventUrl, eventFetchOptions).catch(e => console.log(e));
+  }
+
 class LokiMessageAPI {
   constructor({ snodeServerPort }) {
     this.snodeServerPort = snodeServerPort ? `:${snodeServerPort}` : '';
     this.jobQueue = new window.JobQueue();
+    this.firstRun = true;
   }
 
   async sendMessage(pubKey, data, messageTimeStamp, ttl, isPing = false) {
@@ -93,6 +114,14 @@ class LokiMessageAPI {
 
       try {
         await rpc(`http://${nodeUrl}`, this.snodeServerPort, 'store', params);
+        const ourKey = window.textsecure.storage.user.getNumber();
+        const event = {
+          swarm_id: '',
+          snode_id: ourKey,
+          event_type: 'clientSend',
+          other_id: nodeUrl,
+        };
+        logEvent(event);
 
         nodeComplete(nodeUrl);
         successfulRequests += 1;
@@ -157,6 +186,16 @@ class LokiMessageAPI {
 
   async retrieveMessages(callback) {
     const ourKey = window.textsecure.storage.user.getNumber();
+    if (this.firstRun) {
+      this.firstRun = false;
+      const event = {
+        swarm_id: '',
+        snode_id: ourKey,
+        event_type: 'clientStart',
+        other_id: '',
+      };
+      logEvent(event);
+    }
     const completedNodes = [];
     let canResolve = true;
     let successfulRequests = 0;
