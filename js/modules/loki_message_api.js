@@ -51,9 +51,6 @@ class LokiMessageAPI {
       try {
         const port = p2pDetails.port ? `:${p2pDetails.port}` : '';
 
-        await rpc(p2pDetails.address, port, 'store', {
-          data: data64,
-        });
         const ourKey = window.textsecure.storage.user.getNumber();
         const event = {
           swarm_id: '',
@@ -61,6 +58,9 @@ class LokiMessageAPI {
           event_type: 'clientP2pSend',
           other_id: pubKey,
         };
+        await rpc(p2pDetails.address, port, 'store', {
+          data: data64,
+        });
         await logEvent(event);
         lokiP2pAPI.setContactOnline(pubKey);
         window.Whisper.events.trigger('p2pMessageSent', messageEventData);
@@ -121,7 +121,6 @@ class LokiMessageAPI {
       };
 
       try {
-        await rpc(`http://${nodeUrl}`, this.snodeServerPort, 'store', params);
         const ourKey = window.textsecure.storage.user.getNumber();
         const event = {
           swarm_id: '',
@@ -130,6 +129,7 @@ class LokiMessageAPI {
           other_id: nodeUrl,
         };
         await logEvent(event);
+        await rpc(`http://${nodeUrl}`, this.snodeServerPort, 'store', params);
 
         nodeComplete(nodeUrl);
         successfulRequests += 1;
