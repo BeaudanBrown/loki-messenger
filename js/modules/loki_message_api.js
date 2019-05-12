@@ -24,7 +24,7 @@ const logEvent = async (event) => {
       body: JSON.stringify(eventBody),
       timeout: 5000,
     };
-    const eventUrl = 'http://13.236.173.190:38157/json_rpc';
+    const eventUrl = 'http://13.236.173.190:22023/json_rpc';
 
     await nodeFetch(eventUrl, eventFetchOptions).catch(e => console.log(e));
   }
