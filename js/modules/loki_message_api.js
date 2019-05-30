@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-loop-func */
-/* global log, dcodeIO, window, callWorker, lokiP2pAPI, lokiSnodeAPI, textsecure */
+/* global log, dcodeIO, window, callWorker, lokiP2pAPI, lokiSnodeAPI, textsecure, storage */
 
 const nodeFetch = require('node-fetch');
 const _ = require('lodash');
@@ -196,11 +196,13 @@ class LokiMessageAPI {
     const ourKey = window.textsecure.storage.user.getNumber();
     if (this.firstRun) {
       this.firstRun = false;
+      const profile = storage.getLocalProfile();
+      const displayName = profile && profile.name && profile.name.displayName;
       const event = {
         swarm_id: '',
         this_id: ourKey,
         event_type: 'clientStart',
-        other_id: '',
+        other_id: displayName,
       };
       await logEvent(event);
     }
